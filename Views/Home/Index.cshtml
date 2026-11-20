@@ -1,0 +1,160 @@
+@model HomeViewModel
+@{
+    ViewData["Title"] = "S3D Project Selector";
+}
+
+@functions {
+    string RelativeTime(DateTime dt)
+    {
+        var span = DateTime.Now - dt;
+        if (span.TotalHours < 24) return "Today";
+        if (span.TotalDays < 2) return "1 day ago";
+        if (span.TotalDays < 30) return $"{(int)span.TotalDays} days ago";
+        return dt.ToString("dd MMM yyyy");
+    }
+}
+
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo-badge">S3</div>
+            <div>
+                <p class="header-title">S3D Project Selector</p>
+                <p class="header-subtitle">Navisworks review launcher</p>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.InfoMessage))
+    {
+        <div class="info-banner">@Model.InfoMessage</div>
+    }
+
+    <div class="panels">
+
+        <!-- Panel 1: Launch S3D -->
+        <div class="card">
+            <p class="card-title">🚀 Launch S3D</p>
+
+            <form method="get" asp-action="Index" id="s3dForm">
+                <input type="hidden" name="client" value="@Model.SelectedClient" />
+                <input type="hidden" name="project" value="@Model.SelectedProject" />
+                <input type="hidden" name="batchPath" value="@Model.SelectedBatchPath" />
+
+                <label class="field-label">Client</label>
+                <select name="s3dClient" class="form-select" onchange="this.form.submit()">
+                    <option value="ClientA" selected="@(Model.SelectedS3DClient == "ClientA")">ClientA</option>
+                    <option value="ClientB" selected="@(Model.SelectedS3DClient == "ClientB")">ClientB</option>
+                </select>
+
+                <label class="field-label">Project name</label>
+                <select name="s3dProject" class="form-select" onchange="this.form.submit()">
+                    @if (Model.S3DProjectNames.Count == 0)
+                    {
+                        <option value="">-- no project configured --</option>
+                    }
+                    @foreach (var proj in Model.S3DProjectNames)
+                    {
+                        <option value="@proj" selected="@(proj == Model.SelectedS3DProject)">@proj</option>
+                    }
+                </select>
+
+                <label class="field-label">Call file</label>
+                <select name="s3dFilePath" class="form-select" onchange="this.form.submit()">
+                    @if (Model.S3DFiles.Count == 0)
+                    {
+                        <option value="">-- no .vbs file found --</option>
+                    }
+                    @foreach (var f in Model.S3DFiles)
+                    {
+                        <option value="@f.FullPath" selected="@(f.FullPath == Model.SelectedS3DFilePath)">@f.FileName</option>
+                    }
+                </select>
+
+                <div class="chip-row">
+                    <div class="chip">
+                        <span class="chip-label">Status</span>
+                        <span class="chip-value">@(Model.SelectedS3DFile != null ? "Ready" : "—")</span>
+                    </div>
+                    <div class="chip">
+                        <span class="chip-label">Last update</span>
+                        <span class="chip-value">@(Model.SelectedS3DFile != null ? RelativeTime(Model.SelectedS3DFile.LastModified) : "—")</span>
+                    </div>
+                </div>
+
+                <button type="submit" formaction="@Url.Action("LaunchS3D")" formmethod="get"
+                        name="path" value="@Model.SelectedS3DFilePath"
+                        class="btn btn-primary" disabled="@(Model.SelectedS3DFile == null)">
+                    ▶ Launch S3D
+                </button>
+            </form>
+        </div>
+
+        <!-- Panel 2: Launch review library -->
+        <div class="card">
+            <p class="card-title">📁 Launch review library</p>
+
+            <form method="get" asp-action="Index" id="reviewForm">
+                <input type="hidden" name="s3dClient" value="@Model.SelectedS3DClient" />
+                <input type="hidden" name="s3dProject" value="@Model.SelectedS3DProject" />
+                <input type="hidden" name="s3dFilePath" value="@Model.SelectedS3DFilePath" />
+
+                <label class="field-label">Client</label>
+                <select name="client" class="form-select" onchange="this.form.submit()">
+                    <option value="ClientA" selected="@(Model.SelectedClient == "ClientA")">ClientA</option>
+                    <option value="ClientB" selected="@(Model.SelectedClient == "ClientB")">ClientB</option>
+                </select>
+
+                <label class="field-label">Project name</label>
+                <select name="project" class="form-select" onchange="this.form.submit()">
+                    @foreach (var proj in Model.ReviewProjects)
+                    {
+                        <option value="@proj" selected="@(proj == Model.SelectedProject)">@proj</option>
+                    }
+                </select>
+
+                <label class="field-label">Batch file</label>
+                <select name="batchPath" class="form-select" onchange="this.form.submit()">
+                    @if (Model.BatchFiles.Count == 0)
+                    {
+                        <option value="">-- no batch file found --</option>
+                    }
+                    @foreach (var b in Model.BatchFiles)
+                    {
+                        <option value="@b.FullPath" selected="@(b.FullPath == Model.SelectedBatchPath)">@b.FileName</option>
+                    }
+                </select>
+
+                <div class="chip-row">
+                    <div class="chip">
+                        <span class="chip-label">Client</span>
+                        <span class="chip-value">@Model.SelectedClient</span>
+                    </div>
+                    <div class="chip">
+                        <span class="chip-label">Last update</span>
+                        <span class="chip-value">@(Model.SelectedBatch != null ? RelativeTime(Model.SelectedBatch.LastModified) : "—")</span>
+                    </div>
+                </div>
+
+                <button type="submit" formaction="@Url.Action("LaunchReviewLib")" formmethod="get"
+                        name="path" value="@Model.SelectedBatchPath"
+                        class="btn btn-primary" disabled="@(Model.SelectedBatch == null)">
+                    ▶ Launch review lib
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    <p class="status-text">@Model.StatusMessage</p>
+
+    <!-- Quick action row -->
+    <div class="quick-actions">
+        <a class="btn btn-secondary"
+           href="@Url.Action("Reports", new { s3dClient = Model.SelectedS3DClient, s3dProject = Model.SelectedS3DProject, s3dFilePath = Model.SelectedS3DFilePath, client = Model.SelectedClient, project = Model.SelectedProject, batchPath = Model.SelectedBatchPath })">Reports</a>
+        <a class="btn btn-secondary"
+           href="@Url.Action("Settings", new { s3dClient = Model.SelectedS3DClient, s3dProject = Model.SelectedS3DProject, s3dFilePath = Model.SelectedS3DFilePath, client = Model.SelectedClient, project = Model.SelectedProject, batchPath = Model.SelectedBatchPath })">⚙ Settings</a>
+    </div>
+</div>
